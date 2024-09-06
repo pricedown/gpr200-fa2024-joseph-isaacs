@@ -9,12 +9,20 @@
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 720;
 
-glm::vec3 chroma(glm::vec3& color, float t, float colorOffset) {
+
+glm::vec3 chroma(float t, float colorOffset) {
 	glm::vec3 result;
-	float scaledT = t * 2 * ew::PI;
+	float scaledT = 2 * ew::PI * t;
+	// TODO: some funny stuff
+	for (int i = 0; i < 3; i++) {
+		result[i] = sin(i*colorOffset + scaledT);
+	}
+
 }
 
+
 int main() {
+	//Boilerplate
 	printf("Initializing...");
 	if (!glfwInit()) {
 		printf("GLFW failed to init!");
@@ -30,9 +38,11 @@ int main() {
 		printf("GLAD Failed to load GL headers");
 		return 1;
 	}
+
 	//Initialization goes here!
 	
 	//Render loop
+	int frameCount = 0;
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		//Clear framebuffer
@@ -41,6 +51,7 @@ int main() {
 		//Drawing happens here!
 
 		glfwSwapBuffers(window);
+		frameCount++;
 	}
 	printf("Shutting down...");
 }
