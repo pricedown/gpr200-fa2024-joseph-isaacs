@@ -9,6 +9,11 @@
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 720;
 
+glm::vec3 chroma(glm::vec3& color, float t, float colorOffset) {
+	glm::vec3 result;
+	float scaledT = t * 2 * ew::PI;
+}
+
 int main() {
 	printf("Initializing...");
 	if (!glfwInit()) {
@@ -34,6 +39,7 @@ int main() {
 		glClearColor(0.3f, 0.4f, 0.9f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		//Drawing happens here!
+
 		glfwSwapBuffers(window);
 	}
 	printf("Shutting down...");
