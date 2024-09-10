@@ -33,8 +33,9 @@ float cubeVertices[] = {
 	 0.0f,  0.5f, 0.0f
 };
 
-// WTF, writing vertex shader source code in a string. (R syntax is to avoid using constant \ns)
-// vertex shader expects one input, that being the position of a vertex. It changes its position in clipping space. 
+// HACK: writing vertex shader source code in a string. (R syntax is to avoid using constant \ns)
+
+// VERTEX SHADERS inputs a vertex and transforms it for clipping space
 const char* vertexShaderSource = R"(
 #version 330 core
 
@@ -45,7 +46,7 @@ void main() {
 }
 )";
 
-// fragment shader expects one output, that being the color of the pixel
+// FRAGMENT SHADER outputs color of individual pixel
 const char* fragmentShaderSource = R"(
 #version 330 core
 out vec4 FragColor;
@@ -68,27 +69,24 @@ int main() {
 		printf("GLFW failed to create window");
 		return 1;
 	}
-	// this is what we're rendering to
-	glfwMakeContextCurrent(window);
+	glfwMakeContextCurrent(window); // this is what we're rendering to
 	// glad literally just identifies the headers for interacting with our machine
 	if (!gladLoadGL(glfwGetProcAddress)) {
 		printf("GLAD Failed to load GL headers");
 		return 1;
 	}
 
-	// Init
-	// ...
 
 
-	// Copying data from CPU to GPU...
+	// Copying data from CPU to GPU...j
 
 	// GEOMETRY DATA
 
-	unsigned int VAO; // vertex array 
+	unsigned int VAO; // vertex array object
 	glGenVertexArrays(1, &VAO); 
 	glBindVertexArray(VAO);
 
-	unsigned int VBO; // buffer id
+	unsigned int VBO;
 	glGenBuffers(1, &VBO); // generate one buffer, assigns buffer id (&VBO) a value
 	glBindBuffer(GL_ARRAY_BUFFER, VBO); // bind the buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW); // GL_STATIC_DRAW (for static meshes), opposed to GL_STREAM_DRAW, GL_DYNAMIC_DRAW (change almost every frame)
@@ -96,6 +94,9 @@ int main() {
 	// vertex attributes
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind the buffer
+
 
 	// VERTEX SHADER 
 	// Create shader
@@ -135,18 +136,13 @@ int main() {
 		}
 	}
 
+	// SHADER PROGRAM (connect the pipeline)
 
-	// SHADER PROGRAM (the whole pipeline)
-
-	// beware of linker errors, because this is where we link stuff together
-	// you also need to log these yourself.
-
-	// Create shader program object by linking shaders together
 	unsigned int shaderProgram = glCreateProgram(); 
-	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, vertexShader); // attaches shaders to program
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
-	// Catch errors
+	// Catch linker errors
 	{
 		int  success;
 		char infoLog[512];
@@ -157,29 +153,29 @@ int main() {
 		}
 	}
 
-	// ASIDE: the shader program runs on the GPU. The goal is just that we're writing code to run on the GPU
-
-	// unbind the buffer
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// Render loop
 	int frameCount = 0;
 	while (!glfwWindowShouldClose(window)) {
 		// INPUT
-		glfwPollEvents(); // Gets inputs
+		glfwPollEvents(); // Polls inputs
 
 		// UPDATE
 
 		// DRAW
-		// Clear framebuffer
-		glClearColor(0.3f, 0.4f, 0.9f, 1.0f); // gl calls interface with GPU
+
+		// "gl-calls interface with GPU" - winebrenner
+
+		glClearColor(0.3f, 0.4f, 0.9f, 1.0f); // "Clearing" means setting all to one value
 		glClear(GL_COLOR_BUFFER_BIT);
-		glfwSwapBuffers(window); // double-buffering
+
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
 
+		// draw the triangle
 		glDrawArrays(GL_TRIANGLES, 0, 3); // Primitive, 0, 3 vertices
 
+		glfwSwapBuffers(window); // double-buffering
 		// DEBUGS
 		frameCount++;
 	}
