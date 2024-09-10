@@ -27,7 +27,7 @@ glm::vec3 chroma(float t, float colorOffset) {
 */
 
 // TODO: abstract into a class
-float cubeVertices[] = {
+float triangleVertices[] = {
 	-0.5f, -0.5f, 0.0f,
 	 0.5f, -0.5f, 0.0f,
 	 0.0f,  0.5f, 0.0f
@@ -35,7 +35,7 @@ float cubeVertices[] = {
 
 // HACK: writing vertex shader source code in a string. (R syntax is to avoid using constant \ns)
 
-// VERTEX SHADERS inputs a vertex and transforms it for clipping space
+// VERTEX SHADERS transforms vectors for clipping space
 const char* vertexShaderSource = R"(
 #version 330 core
 
@@ -46,7 +46,7 @@ void main() {
 }
 )";
 
-// FRAGMENT SHADER outputs color of individual pixel
+// FRAGMENT SHADER outputs pixel color
 const char* fragmentShaderSource = R"(
 #version 330 core
 out vec4 FragColor;
@@ -59,53 +59,49 @@ void main()
 
 int main() {
 	printf("Initializing...");
-	// glfw.org, a library separate from opengl captures inputs and puts onto screen
-	if (!glfwInit()) {
-		printf("GLFW failed to init!");
-		return 1;
+	GLFWwindow* window;
+	{
+		// glfw.org, a library separate from opengl captures inputs and puts onto screen
+		if (!glfwInit()) {
+			printf("GLFW failed to init!");
+			return 1;
+		}
+		window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello Triangle", NULL, NULL);
+		if (window == NULL) {
+			printf("GLFW failed to create window");
+			return 1;
+		}
+		glfwMakeContextCurrent(window); // this is what we're rendering to
+		// glad literally just identifies the headers for interacting with our machine
+		if (!gladLoadGL(glfwGetProcAddress)) {
+			printf("GLAD Failed to load GL headers");
+			return 1;
+		}
 	}
-	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello Triangle", NULL, NULL);
-	if (window == NULL) {
-		printf("GLFW failed to create window");
-		return 1;
-	}
-	glfwMakeContextCurrent(window); // this is what we're rendering to
-	// glad literally just identifies the headers for interacting with our machine
-	if (!gladLoadGL(glfwGetProcAddress)) {
-		printf("GLAD Failed to load GL headers");
-		return 1;
-	}
-
-
-
-	// Copying data from CPU to GPU...j
 
 	// GEOMETRY DATA
 
-	unsigned int VAO; // vertex array object
-	glGenVertexArrays(1, &VAO); 
+	// Vertex Array (Object)
+	unsigned int VAO;
+	glGenVertexArrays(1, &VAO); // gen 1 buffer, initializes buffer id (&VAO)
 	glBindVertexArray(VAO);
 
+	// Vertex Buffer (Object): raw data
 	unsigned int VBO;
-	glGenBuffers(1, &VBO); // generate one buffer, assigns buffer id (&VBO) a value
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); // bind the buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW); // GL_STATIC_DRAW (for static meshes), opposed to GL_STREAM_DRAW, GL_DYNAMIC_DRAW (change almost every frame)
-
-	// vertex attributes
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW); // GL_STATIC_DRAW (for static meshes), opposed to GL_STREAM_DRAW, GL_DYNAMIC_DRAW (change almost every frame)
+	// linking vertex attributes
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind the buffer
+	// SHADERS
 
-
-	// VERTEX SHADER 
-	// Create shader
-	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER); // GL_FRAGMENT_SHADER, COMPUTE_SHADER, this is where you define shader type
-	// Supply the shader source
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader); // you can do this at runtime!!!!!!!!!!!!, we can play with this like in https://shadertoy.com
-	// the GLSL is super flexible
-	// Also, this is the "compiling shader" section in your games
+	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER); // define shader type
+	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); // supply shader source
+	glCompileShader(vertexShader); // compile shader
+	// GLSL is super flexible and the compilation can be done at runtime!! we can play with this like in https://shadertoy.com)
 	 
 	// hey, shaders can quietly fail and not really return anything on their own, so you have to do this.
 	{
@@ -118,14 +114,10 @@ int main() {
 		}
 	}
 
-
-	// FRAGMENT SHADER 
-	// Create shader
 	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER); 
-	// Supply the shader source
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	// Debug
 	glCompileShader(fragmentShader);
+	// Debug
 	{
 		int  success;
 		char infoLog[512];
@@ -139,10 +131,15 @@ int main() {
 	// SHADER PROGRAM (connect the pipeline)
 
 	unsigned int shaderProgram = glCreateProgram(); 
-	glAttachShader(shaderProgram, vertexShader); // attaches shaders to program
+	// attach shaders
+	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
+	// delete shaders
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+	// link it together
 	glLinkProgram(shaderProgram);
-	// Catch linker errors
+	// catch linker errors
 	{
 		int  success;
 		char infoLog[512];
@@ -153,10 +150,12 @@ int main() {
 		}
 	}
 
-
 	// Render loop
 	int frameCount = 0;
 	while (!glfwWindowShouldClose(window)) {
+		// DEBUGS
+		frameCount++;
+
 		// INPUT
 		glfwPollEvents(); // Polls inputs
 
@@ -166,18 +165,18 @@ int main() {
 
 		// "gl-calls interface with GPU" - winebrenner
 
+		// set bg
 		glClearColor(0.3f, 0.4f, 0.9f, 1.0f); // "Clearing" means setting all to one value
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		// update shader pipeline (program) & VAO
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
 
-		// draw the triangle
+		// draw triangle
 		glDrawArrays(GL_TRIANGLES, 0, 3); // Primitive, 0, 3 vertices
 
 		glfwSwapBuffers(window); // double-buffering
-		// DEBUGS
-		frameCount++;
 	}
 	printf("Shutting down...");
 }
