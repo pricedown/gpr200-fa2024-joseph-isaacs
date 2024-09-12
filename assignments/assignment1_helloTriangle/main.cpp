@@ -15,22 +15,17 @@ That means we'll have a lot of boilerplate and stuff in main, and a lot of expla
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 720;
 
-/*
-glm::vec3 chroma(float t, float colorOffset) {
-	glm::vec3 result;
-	float scaledT = 2 * ew::PI * t;
-	// TODO: some funny stuff
-	for (int i = 0; i < 3; i++) {
-		result[i] = sin(i*colorOffset + scaledT);
-	}
-}
-*/
-
 // TODO: abstract into a class
-float triangleVertices[] = {
-	-0.5f, -0.5f, 0.0f,
-	 0.5f, -0.5f, 0.0f,
-	 0.0f,  0.5f, 0.0f
+
+float vertices[] = {
+	 0.5f,  0.5f, 0.0f,  // top right
+	 0.5f, -0.5f, 0.0f,  // bottom right
+	-0.5f, -0.5f, 0.0f,  // bottom left
+	-0.5f,  0.5f, 0.0f   // top left 
+};
+unsigned int indices[] = {  // note that we start from 0!
+	0, 1, 3,   // first triangle
+	1, 2, 3    // second triangle
 };
 
 // HACK: writing vertex shader source code in a string. (R syntax is to avoid using constant \ns)
@@ -49,6 +44,7 @@ void main() {
 // FRAGMENT SHADER outputs pixel color
 const char* fragmentShaderSource = R"(
 #version 330 core
+
 out vec4 FragColor;
 
 void main()
@@ -81,20 +77,30 @@ int main() {
 
 	// GEOMETRY DATA
 
-	// Vertex Array (Object)
+	// Vertex Array: the final vertex input
 	unsigned int VAO;
 	glGenVertexArrays(1, &VAO); // gen 1 buffer, initializes buffer id (&VAO)
 	glBindVertexArray(VAO);
 
-	// Vertex Buffer (Object): raw data
+	// Vertex Buffer: raw vertex data
 	unsigned int VBO;
 	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW); // GL_STATIC_DRAW (for static meshes), opposed to GL_STREAM_DRAW, GL_DYNAMIC_DRAW (change almost every frame)
+	glBindBuffer(GL_ARRAY_BUFFER, VBO); // The GL_ARRAY_BUFFER target for buffer objects represents the intent to use that buffer object for vertex attribute data.
+
+	// Element Buffer: shapes from indeces of vertices
+	unsigned int EBO;
+	glGenBuffers(1, &EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); 
+
 	// linking vertex attributes
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0); 
+	glEnableVertexArrayAttrib(VAO, 0); // Enables the 0th attribute for use in vertex shaders
+
+	// send vertex data from CPU to GPU
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // GL_STATIC_DRAW (for static meshes), opposed to GL_STREAM_DRAW, GL_DYNAMIC_DRAW (change almost every frame)
+	glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind
+	// send indices data 
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); 
 
 	// SHADERS
 
@@ -102,7 +108,6 @@ int main() {
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); // supply shader source
 	glCompileShader(vertexShader); // compile shader
 	// GLSL is super flexible and the compilation can be done at runtime!! we can play with this like in https://shadertoy.com)
-	 
 	// hey, shaders can quietly fail and not really return anything on their own, so you have to do this.
 	{
 		int  success;
@@ -117,7 +122,6 @@ int main() {
 	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER); 
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
-	// Debug
 	{
 		int  success;
 		char infoLog[512];
@@ -174,7 +178,7 @@ int main() {
 		glBindVertexArray(VAO);
 
 		// draw triangle
-		glDrawArrays(GL_TRIANGLES, 0, 3); // Primitive, 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window); // double-buffering
 	}
