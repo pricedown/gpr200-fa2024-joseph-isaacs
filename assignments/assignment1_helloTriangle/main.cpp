@@ -42,7 +42,7 @@ out vec3 fColor;
 uniform float waveT;
 
 void main() {
-	gl_Position = vec4(cos(waveT*2+aPos.y)/2.0f * aPos.x, aPos.y * sin(waveT+(aPos.x))/2.0f, aPos.z, 1.0f);
+	gl_Position = vec4(cos(waveT*2+aPos.y)/1.5f * aPos.x, aPos.y + sin(waveT+(aPos.x))/2.0f, aPos.z, 1.0f);
 	fColor = aColor;
 }
 )";
@@ -61,7 +61,7 @@ in vec3 fColor;
 void main()
 {
 	for (int i = 0; i < 3; i++) {
-		FragColor[i] = mod(fColor[i] + chromaColor[i], 1.0f);
+		FragColor[i] = mod(fColor[i] * chromaColor[i], 1.0f);
 	}
 } 
 )";
