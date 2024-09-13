@@ -18,10 +18,11 @@ const int SCREEN_HEIGHT = 720;
 // TODO: abstract into a class
 
 float vertices[] = {
-	 0.5f,  0.5f, 0.0f,  // top right
-	 0.5f, -0.5f, 0.0f,  // bottom right
-	-0.5f, -0.5f, 0.0f,  // bottom left
-	-0.5f,  0.5f, 0.0f   // top left 
+	// position			// color
+	 0.5f,  0.5f, 0.0f, 0.0f, 0.5f, 0.5f, // top right
+	 0.5f, -0.5f, 0.0f, 0.5f, 0.0f, 0.5f, // bottom right
+	-0.5f, -0.5f, 0.0f, 0.5f, 0.5f, 0.0f, // bottom left
+	-0.5f,  0.5f, 0.0f, 0.5f, 0.5f, 0.5f, // top left 
 };
 unsigned int indices[] = {  // note that we start from 0!
 	0, 1, 3,   // first triangle
@@ -35,9 +36,14 @@ const char* vertexShaderSource = R"(
 #version 330 core
 
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+out vec3 fColor;
+
+uniform float waveT;
 
 void main() {
-	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0f);
+	gl_Position = vec4(cos(waveT*2+aPos.y)/2.0f * aPos.x, aPos.y * sin(waveT+(aPos.x))/2.0f, aPos.z, 1.0f);
+	fColor = aColor;
 }
 )";
 
@@ -46,10 +52,17 @@ const char* fragmentShaderSource = R"(
 #version 330 core
 
 out vec4 FragColor;
+uniform float alphaShift;
+uniform vec3 chromaColor;
+
+in vec3 fColor;
+
 
 void main()
 {
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+	for (int i = 0; i < 3; i++) {
+		FragColor[i] = mod(fColor[i] + chromaColor[i], 1.0f);
+	}
 } 
 )";
 
@@ -93,8 +106,11 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); 
 
 	// linking vertex attributes
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexArrayAttrib(VAO, 0); // Enables the 0th attribute for use in vertex shaders
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),(void*)(sizeof(float)*3));
+	glEnableVertexArrayAttrib(VAO, 1); // Enables the 0th attribute for use in vertex shaders
 
 	// send vertex data from CPU to GPU
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // GL_STATIC_DRAW (for static meshes), opposed to GL_STREAM_DRAW, GL_DYNAMIC_DRAW (change almost every frame)
@@ -156,6 +172,8 @@ int main() {
 
 	// Render loop
 	int frameCount = 0;
+	float rad = 0;
+
 	while (!glfwWindowShouldClose(window)) {
 		// DEBUGS
 		frameCount++;
@@ -164,6 +182,20 @@ int main() {
 		glfwPollEvents(); // Polls inputs
 
 		// UPDATE
+		glUseProgram(shaderProgram);
+		float time = glfwGetTime();
+
+		// chroma color
+		int chromaColorLocation = glGetUniformLocation(shaderProgram, "chromaColor");
+		float r = sin(time) / 2.0f + 0.5f;
+		float g = cos(time) / 2.0f + 0.5f;
+		float b = -sin(time) / 2.0f + 0.5f;
+		glUniform3f(chromaColorLocation, r, g, b);
+
+		// rotation
+		float waveT = time;
+		int waveTLocation = glGetUniformLocation(shaderProgram, "waveT");
+		glUniform1f(waveTLocation, waveT);
 
 		// DRAW
 
@@ -172,10 +204,6 @@ int main() {
 		// set bg
 		glClearColor(0.3f, 0.4f, 0.9f, 1.0f); // "Clearing" means setting all to one value
 		glClear(GL_COLOR_BUFFER_BIT);
-
-		// update shader pipeline (program) & VAO
-		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);
 
 		// draw triangle
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
