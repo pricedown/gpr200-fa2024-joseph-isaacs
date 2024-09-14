@@ -18,18 +18,16 @@ const int SCREEN_HEIGHT = 720;
 // TODO: abstract into a class
 
 float vertices[] = {
-	// position			// color
-	 0.5f,  0.5f, 0.0f, 0.0f, 0.5f, 0.5f, // top right
-	 0.5f, -0.5f, 0.0f, 0.5f, 0.0f, 0.5f, // bottom right
-	-0.5f, -0.5f, 0.0f, 0.5f, 0.5f, 0.0f, // bottom left
-	-0.5f,  0.5f, 0.0f, 0.5f, 0.5f, 0.5f, // top left 
+	// position				// color
+	 0.5f,  0.5f, 0.0f,		0.0f, 0.5f, 0.5f, // top right
+	 0.5f, -0.5f, 0.0f,		0.5f, 0.0f, 0.5f, // bottom right
+	-0.5f, -0.5f, 0.0f,		0.5f, 0.5f, 0.0f, // bottom left
+	-0.5f,  0.5f, 0.0f,		0.5f, 0.5f, 0.5f, // top left 
 };
 unsigned int indices[] = {  // note that we start from 0!
 	0, 1, 3,   // first triangle
 	1, 2, 3    // second triangle
 };
-
-// HACK: writing vertex shader source code in a string. (R syntax is to avoid using constant \ns)
 
 // VERTEX SHADERS transforms vectors for clipping space
 const char* vertexShaderSource = R"(
@@ -42,7 +40,7 @@ out vec3 fColor;
 uniform float waveT;
 
 void main() {
-	gl_Position = vec4(cos(waveT*2+aPos.y)/1.5f * aPos.x, aPos.y + sin(waveT+(aPos.x))/2.0f, aPos.z, 1.0f);
+	gl_Position = vec4(cos(waveT*2+aPos.y)*cos(waveT*2+aPos.y)*cos(waveT*2+aPos.y)/1.5f * aPos.x, aPos.y + sin(waveT+(aPos.x))/2.0f, aPos.z, 1.0f);
 	fColor = aColor;
 }
 )";
@@ -105,16 +103,16 @@ int main() {
 	glGenBuffers(1, &EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); 
 
-	// linking vertex attributes
+	// position vertex attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-	glEnableVertexArrayAttrib(VAO, 0); // Enables the 0th attribute for use in vertex shaders
-
+	glEnableVertexArrayAttrib(VAO, 0);
+	// color vertex attribute
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),(void*)(sizeof(float)*3));
-	glEnableVertexArrayAttrib(VAO, 1); // Enables the 0th attribute for use in vertex shaders
+	glEnableVertexArrayAttrib(VAO, 1);
 
 	// send vertex data from CPU to GPU
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // GL_STATIC_DRAW (for static meshes), opposed to GL_STREAM_DRAW, GL_DYNAMIC_DRAW (change almost every frame)
-	glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // GL_STATIC_DRAW 
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	// send indices data 
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); 
 
@@ -123,8 +121,6 @@ int main() {
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER); // define shader type
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); // supply shader source
 	glCompileShader(vertexShader); // compile shader
-	// GLSL is super flexible and the compilation can be done at runtime!! we can play with this like in https://shadertoy.com)
-	// hey, shaders can quietly fail and not really return anything on their own, so you have to do this.
 	{
 		int  success;
 		char infoLog[512];
@@ -151,15 +147,11 @@ int main() {
 	// SHADER PROGRAM (connect the pipeline)
 
 	unsigned int shaderProgram = glCreateProgram(); 
-	// attach shaders
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
-	// delete shaders
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
-	// link it together
 	glLinkProgram(shaderProgram);
-	// catch linker errors
 	{
 		int  success;
 		char infoLog[512];
@@ -172,7 +164,6 @@ int main() {
 
 	// Render loop
 	int frameCount = 0;
-	float rad = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		// DEBUGS
