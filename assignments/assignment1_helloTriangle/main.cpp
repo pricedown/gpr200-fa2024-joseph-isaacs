@@ -12,6 +12,8 @@ That means we'll have a lot of boilerplate and stuff in main, and a lot of expla
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+#include <jisaacs/shader.h>
+
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 720;
 
@@ -28,41 +30,6 @@ unsigned int indices[] = {  // note that we start from 0!
 	0, 1, 3,   // first triangle
 	1, 2, 3    // second triangle
 };
-
-// VERTEX SHADERS transforms vectors for clipping space
-const char* vertexShaderSource = R"(
-#version 330 core
-
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-out vec3 fColor;
-
-uniform float waveT;
-
-void main() {
-	gl_Position = vec4(cos(waveT*2+aPos.y)*cos(waveT*2+aPos.y)*cos(waveT*2+aPos.y)/1.5f * aPos.x, aPos.y + sin(waveT+(aPos.x))/2.0f, aPos.z, 1.0f);
-	fColor = aColor;
-}
-)";
-
-// FRAGMENT SHADER outputs pixel color
-const char* fragmentShaderSource = R"(
-#version 330 core
-
-out vec4 FragColor;
-uniform float alphaShift;
-uniform vec3 chromaColor;
-
-in vec3 fColor;
-
-
-void main()
-{
-	for (int i = 0; i < 3; i++) {
-		FragColor[i] = mod(fColor[i] * chromaColor[i], 1.0f);
-	}
-} 
-)";
 
 int main() {
 	printf("Initializing...");
@@ -116,90 +83,42 @@ int main() {
 	// send indices data 
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); 
 
-	// SHADERS
-
-	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER); // define shader type
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); // supply shader source
-	glCompileShader(vertexShader); // compile shader
-	{
-		int  success;
-		char infoLog[512];
-		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-	}
-
-	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER); 
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	{
-		int  success;
-		char infoLog[512];
-		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-	}
-
-	// SHADER PROGRAM (connect the pipeline)
-
-	unsigned int shaderProgram = glCreateProgram(); 
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-	glLinkProgram(shaderProgram);
-	{
-		int  success;
-		char infoLog[512];
-		glGetShaderiv(shaderProgram, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			glGetShaderInfoLog(shaderProgram, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-	}
+	jisaacs::Shader myShader = jisaacs::Shader("assets/vertexShader.vert", "assets/fragmentShader.frag");
 
 	// Render loop
 	int frameCount = 0;
-
 	while (!glfwWindowShouldClose(window)) {
 		// DEBUGS
 		frameCount++;
 
 		// INPUT
+
 		glfwPollEvents(); // Polls inputs
 
 		// UPDATE
-		glUseProgram(shaderProgram);
+
 		float time = glfwGetTime();
+		myShader.use();
 
 		// chroma color
-		int chromaColorLocation = glGetUniformLocation(shaderProgram, "chromaColor");
 		float r = sin(time) / 2.0f + 0.5f;
 		float g = cos(time) / 2.0f + 0.5f;
 		float b = -sin(time) / 2.0f + 0.5f;
-		glUniform3f(chromaColorLocation, r, g, b);
+		myShader.setVec3("chromaColor", r, g, b);
 
-		// rotation
-		float waveT = time;
-		int waveTLocation = glGetUniformLocation(shaderProgram, "waveT");
-		glUniform1f(waveTLocation, waveT);
+		// wave
+		myShader.setFloat("waveT", time);
 
 		// DRAW
 
-		// "gl-calls interface with GPU" - winebrenner
-
-		// set bg
+		// background
 		glClearColor(0.3f, 0.4f, 0.9f, 1.0f); // "Clearing" means setting all to one value
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// draw triangle
+		// triangles
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-		glfwSwapBuffers(window); // double-buffering
+		glfwSwapBuffers(window); // double-buffering technique
 	}
 	printf("Shutting down...");
 }
