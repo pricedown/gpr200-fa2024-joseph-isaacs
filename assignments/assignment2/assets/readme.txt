@@ -5,3 +5,4 @@ Types of assets:
 -Models
 This assets folder will be copied next to your executable when you build.
 To access assets from your source, path to "assets/yourassetname.whatever"
+
