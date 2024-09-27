@@ -97,12 +97,15 @@ int main() {
 		float time = glfwGetTime();
 
 		// Draw background
+		glDisable(GL_BLEND);
 		bgShader.use();
 		bgShader.setInt("ourTexture", 0);
 		bgTexture.Bind(GL_TEXTURE0);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		// Draw character
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		guyShader.use();
 		guyShader.setInt("ourTexture", 1);
 		guyShader.setFloat("waveT", time);
