@@ -18,12 +18,22 @@ That means we'll have a lot of boilerplate and stuff in main, and a lot of expla
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 720;
 
+/*
 const float vertices[] = {
 	// position			 // color				  // texture coords
 	-0.5f, -0.5f, 0.0f,	 0.0f, 0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // 
 	 0.5f, -0.5f, 0.0f,	 1.0f, 0.0f, 0.0f, 1.0f,  1.0f, 0.0f, // 
 	 0.5f,  0.5f, 0.0f,	 1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 1.0f, // 
 	-0.5f,  0.5f, 0.0f,	 0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f, // 
+};
+*/
+
+const float bgVertices[] = {
+	// position			 // color				  // texture coords
+	-1.0f, -1.0f, 0.0f,	 0.0f, 0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // 
+	 1.0f, -1.0f, 0.0f,	 1.0f, 0.0f, 0.0f, 1.0f,  3.0f, 0.0f, // 
+	 1.0f,  1.0f, 0.0f,	 1.0f, 1.0f, 0.0f, 1.0f,  3.0f, 3.0f, // 
+	-1.0f,  1.0f, 0.0f,	 0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 3.0f, // 
 };
 
 const int indices[] = {
@@ -61,7 +71,7 @@ int main() {
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(bgVertices), bgVertices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(sizeof(float)*3));
@@ -83,7 +93,7 @@ int main() {
 	jisaacs::Shader shader = jisaacs::Shader("assets/shader.vert", "assets/shader.frag");
 	shader.use();
 
-	jisaacs::Texture2D bgTexture = jisaacs::Texture2D("assets/bg.png", GL_NEAREST, GL_CLAMP_TO_BORDER);
+	jisaacs::Texture2D bgTexture = jisaacs::Texture2D("assets/bg.png", GL_LINEAR, GL_REPEAT);
 	bgTexture.Bind(GL_TEXTURE0);
 
 

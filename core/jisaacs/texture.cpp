@@ -15,7 +15,14 @@ Texture2D::Texture2D(const char* filePath, int filterMode, int wrapMode) {
 	unsigned char* data = stbi_load(filePath, &m_width, &m_height, &m_nrChannels, 0);
 	if (data)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		int format;
+		if (m_nrChannels == 4) {
+			format = GL_RGBA;
+		}
+		else {
+			format = GL_RGB;
+		}
+		glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, format, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	else
