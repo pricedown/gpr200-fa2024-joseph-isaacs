@@ -29,7 +29,7 @@ Texture2D::Texture2D(const char* filePath, int filterMode, int wrapMode) {
 	{
 		std::cout << "Failed to load texture" << std::endl;
 	}
-	stbi_set_flip_vertically_on_load(true);
+	stbi_set_flip_vertically_on_load(true); // reads image in same order as UV plane
 	stbi_image_free(data);
 }
 
