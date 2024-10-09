@@ -4,13 +4,13 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec4 aColor;
 layout (location = 2) in vec2 aTexCoord;
 
-out vec4 fColor;
 out vec2 TexCoord;
+out vec4 vColor;
 
-uniform float waveT;
+uniform mat4 transform;
 
 void main() {
-	gl_Position = vec4(0.66f + aPos.x + cos(waveT)/2, 0.66f + aPos.y + sin(waveT)/2, aPos.z, 1.0f);
-	fColor = aColor;
+	gl_Position = transform * vec4(aPos,1.0);
 	TexCoord = aTexCoord;
+	vColor = aColor;
 }

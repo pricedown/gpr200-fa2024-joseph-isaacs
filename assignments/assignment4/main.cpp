@@ -8,20 +8,23 @@
 #include <ew/external/glad.h>
 #include <ew/ewMath/ewMath.h>
 #include <GLFW/glfw3.h>
+
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <jisaacs/shader.h>
 #include <jisaacs/texture.h>
 
-const int SCREEN_WIDTH = 1080;
-const int SCREEN_HEIGHT = 720;
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 800;
 
-const float bgVertices[] = {
+const float quadVertices[] = {
 	// position			 // color				  // texture coords
 	-1.0f, -1.0f, 0.0f,	 0.0f, 0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // Bottom left
 	 1.0f, -1.0f, 0.0f,	 1.0f, 0.0f, 0.0f, 1.0f,  3.0f, 0.0f, // Bottom right
-	 1.0f,  1.0f, 0.0f,	 1.0f, 1.0f, 0.0f, 1.0f,  3.0f, 2.531f, // Top right
-	-1.0f,  1.0f, 0.0f,	 0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 2.531f, // Top left
+	 1.0f,  1.0f, 0.0f,	 1.0f, 1.0f, 0.0f, 1.0f,  3.0f, 3.0f, // Top right
+	-1.0f,  1.0f, 0.0f,	 0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 3.0f, // Top left
 };
 
 const int quadIndices[] = {
@@ -59,7 +62,7 @@ int main() {
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(bgVertices), bgVertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
 
 	glGenBuffers(1, &EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -75,11 +78,8 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	#pragma endregion
 
-	jisaacs::Shader bgShader = jisaacs::Shader("assets/bgShader.vert", "assets/bgShader.frag");
-	jisaacs::Shader guyShader = jisaacs::Shader("assets/guyShader.vert", "assets/guyShader.frag");
-
-	jisaacs::Texture2D bgTexture = jisaacs::Texture2D("assets/bg.png", GL_LINEAR, GL_REPEAT);
-	jisaacs::Texture2D guyTexture = jisaacs::Texture2D("assets/guy.png", GL_NEAREST, GL_CLAMP_TO_BORDER);
+	jisaacs::Shader shader = jisaacs::Shader("assets/shaders/shader.vert", "assets/shaders/shader.frag");
+	jisaacs::Texture2D brick = jisaacs::Texture2D("assets/textures/brick.png", GL_LINEAR, GL_REPEAT);
 
 	while (!glfwWindowShouldClose(window)) {
 		// Inputs
@@ -88,20 +88,20 @@ int main() {
 		// Update
 		float time = glfwGetTime();
 
-		// Draw background
-		glDisable(GL_BLEND);
-		bgShader.use();
-		bgShader.setInt("ourTexture", 0);
-		bgTexture.Bind(GL_TEXTURE0);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glm::mat4 model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(0.5, 0.5, 0.5));
+		model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
+		model = glm::rotate(model, time*(2*ew::PI), glm::vec3(0.0, 0.0, 1.0));
 
-		// Draw character
+		// Draw
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		
+		// brick square
 		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		guyShader.use();
-		guyShader.setInt("ourTexture", 1);
-		guyShader.setFloat("waveT", time);
-		guyTexture.Bind(GL_TEXTURE1);
+		shader.use();
+		shader.setMat4("transform", model);
+		brick.Bind(GL_TEXTURE0);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
