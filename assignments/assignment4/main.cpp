@@ -90,8 +90,8 @@ int main() {
 
 		glm::mat4 model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(0.5, 0.5, 0.5));
+		model = glm::rotate(model, time, glm::vec3(0.0, 0.0, 1.0));
 		model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
-		model = glm::rotate(model, time*(2*ew::PI), glm::vec3(0.0, 0.0, 1.0));
 
 		// Draw
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -102,6 +102,8 @@ int main() {
 		shader.use();
 		shader.setMat4("transform", model);
 		brick.Bind(GL_TEXTURE0);
+		
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
