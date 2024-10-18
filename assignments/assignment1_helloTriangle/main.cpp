@@ -26,7 +26,7 @@ float vertices[] = {
 	-0.5f, -0.5f, 0.0f,		0.5f, 0.5f, 0.0f, // bottom left
 	-0.5f,  0.5f, 0.0f,		0.5f, 0.5f, 0.5f, // top left 
 };
-unsigned int quadIndices[] = {  // note that we start from 0!
+unsigned int cubeIndices[] = {  // note that we start from 0!
 	0, 1, 3,   // first triangle
 	1, 2, 3    // second triangle
 };
@@ -81,7 +81,7 @@ int main() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // GL_STATIC_DRAW 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	// send indices data 
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW); 
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIndices), cubeIndices, GL_STATIC_DRAW); 
 
 	jisaacs::Shader myShader = jisaacs::Shader("assets/vertexShader.vert", "assets/fragmentShader.frag");
 
