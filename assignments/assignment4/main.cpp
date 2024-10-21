@@ -17,8 +17,7 @@
 #include <jisaacs/texture.h>
 
 const int SCREEN_WIDTH = 1000;
-const int SCREEN_HEIGHT = 500;
-const float ASPECT_RATIO = SCREEN_WIDTH / SCREEN_HEIGHT;
+const int SCREEN_HEIGHT = 800;
 
 enum ProjectionType {
 	ORTHOGRAPHIC = 0,
@@ -32,14 +31,15 @@ const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
 ProjectionType cameraMode = ProjectionType::PERSPECTIVE;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); //- Camera starts looking looking along world Z axis.
+
 float pitch, yaw;
-float nearPlane = 0.1f, farPlane = 1000.0f;
+float nearPlane = 0.1f, farPlane = 1000.0f; //- Near plane of 0.1, Far plane of 1000
 const float walkSpeed = 2.5f, runSpeed = 5.0f;
 
 float lastX = 0, lastY = 0;
 const float sensitivity = 0.1f;
-float fov = 60.0f;
+float fov = 60.0f; //- Perspective projection with a default FOV of 60 degrees
 bool firstMouse = true;
 
 const float cubeVertices[] = {
@@ -105,9 +105,9 @@ glm::vec3 cubePositions[] = {
 };
 
 void movementInput(GLFWwindow* window) {
+	float cameraSpeed = deltaTime; //- All movement must be scaled by deltaTime to be framerate independent
 	
-	float cameraSpeed = deltaTime;
-	// sprinting
+	//- Left Shift to Sprint(double base movement speed if held)*
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) 
 		cameraSpeed *= 5.0f;
 	else
@@ -121,6 +121,8 @@ void movementInput(GLFWwindow* window) {
 		cameraPos -= glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
+
+	//- Q, E to move down / up along local Y axis, respectively*
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 		cameraPos -= glm::normalize(glm::cross(glm::cross(cameraFront, UP), cameraFront)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
@@ -132,7 +134,8 @@ void processInput(GLFWwindow* window)
 {
 	movementInput(window);
 	
-	// toggle camera mode
+	//- Bonus +2: Add an option to toggle between Perspective and Orthographic projection.
+	// [TAB] to change mode
 	if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) {
 		if (holding == false) {
 			cameraMode = (ProjectionType)((cameraMode + 1) % 2);
@@ -144,7 +147,7 @@ void processInput(GLFWwindow* window)
 	}
 }
 
-
+//- Aiming with mouse
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	if (firstMouse)
 	{
@@ -158,8 +161,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	lastX = xpos;
 	lastY = ypos;
 
-	//std::cout << xpos << ", " << ypos << std::endl;
-
 	float sensitivity = 0.1f;
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
@@ -167,6 +168,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	yaw += xoffset;
 	pitch += yoffset;
 
+	//- Pitch is clamped to - 89 and 89 degrees
 	if (pitch > 89.0f)
 		pitch = 89.0f;
 	if (pitch < -89.0f)
@@ -179,9 +181,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	cameraFront = glm::normalize(direction);
 }
 
+//- Mouse scroll to change FOV
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	fov -= (float)yoffset;
+
+	//- Clamp FOV between 1 and 120 degrees
 	if (fov < 1.0f)
 		fov = 1.0f;
 	if (fov > 120.0f)
@@ -258,7 +263,7 @@ int main() {
 
 		glm::mat4 projection = glm::mat4(1.0);
 		if (cameraMode == ProjectionType::PERSPECTIVE) {
-			projection = glm::perspective(glm::radians(fov),ASPECT_RATIO, nearPlane, farPlane);
+			projection = glm::perspective(glm::radians(fov), (float)SCREEN_WIDTH/SCREEN_HEIGHT, nearPlane, farPlane);  // FOV accounts for the screen's aspect ratio
 		}
 		else if (cameraMode == ProjectionType::ORTHOGRAPHIC) {
 			projection = glm::ortho(-SCREEN_WIDTH / 450.0f, SCREEN_WIDTH / 450.0f, -SCREEN_HEIGHT / 450.0f, SCREEN_HEIGHT / 450.0f, nearPlane, farPlane);
