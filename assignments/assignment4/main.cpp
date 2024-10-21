@@ -23,7 +23,14 @@ const float ASPECT_RATIO = SCREEN_WIDTH / SCREEN_HEIGHT;
 enum class ProjectionType {
 	ORTHOGRAPHIC,
 	PERSPECTIVE
-};
+}; 
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUP = glm::vec3(0.0f, 1.0f, 0.0f);
 
 const float cubeVertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -87,6 +94,20 @@ glm::vec3 cubePositions[] = {
 	glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
+void processInput(GLFWwindow* window)
+{
+	float cameraSpeed = 2.5f * deltaTime;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUP)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUP)) * cameraSpeed;
+}
+
 int main() {
 	#pragma region Initialization
 	printf("Initializing...");
@@ -139,17 +160,20 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 		// Inputs
 		glfwPollEvents();
+		processInput(window);
 
 		// Update
 		float time = glfwGetTime();
+		deltaTime = time - lastFrame;
+		lastFrame = time;
 
 		glm::mat4 model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0));
 		model = glm::rotate(model, time, glm::vec3(1.0, 0.0, 0.0));
 		model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
 
-		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		glm::mat4 view;
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUP);
 
 		float fov = 45.0;
 		glm::mat4 projection = glm::mat4(1.0);
