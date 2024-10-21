@@ -16,25 +16,30 @@
 #include <jisaacs/shader.h>
 #include <jisaacs/texture.h>
 
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 800;
+const int SCREEN_WIDTH = 1000;
+const int SCREEN_HEIGHT = 500;
 const float ASPECT_RATIO = SCREEN_WIDTH / SCREEN_HEIGHT;
 
-enum class ProjectionType {
-	ORTHOGRAPHIC,
-	PERSPECTIVE
-}; 
+enum ProjectionType {
+	ORTHOGRAPHIC = 0,
+	PERSPECTIVE = 1
+};
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f);
+
+ProjectionType cameraMode = ProjectionType::PERSPECTIVE;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUP = glm::vec3(0.0f, 1.0f, 0.0f);
 float pitch, yaw;
-float lastX = 400, lastY = 300;
+float nearPlane = 0.1f, farPlane = 1000.0f;
+const float walkSpeed = 2.5f, runSpeed = 5.0f;
+
+float lastX = 0, lastY = 0;
 const float sensitivity = 0.1f;
-float fov = 45.0f;
+float fov = 60.0f;
 bool firstMouse = true;
 
 const float cubeVertices[] = {
@@ -99,19 +104,47 @@ glm::vec3 cubePositions[] = {
 	glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
-void processInput(GLFWwindow* window)
-{
-	float cameraSpeed = 2.5f * deltaTime;
+void movementInput(GLFWwindow* window) {
+	
+	float cameraSpeed = deltaTime;
+	// sprinting
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) 
+		cameraSpeed *= 5.0f;
+	else
+		cameraSpeed *= 2.5f;
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		cameraPos += cameraSpeed * cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		cameraPos -= cameraSpeed * cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUP)) * cameraSpeed;
+		cameraPos -= glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUP)) * cameraSpeed;
+		cameraPos += glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(glm::cross(cameraFront, UP), cameraFront)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(glm::cross(cameraFront, UP), cameraFront)) * cameraSpeed;
 }
+
+bool holding = false;
+void processInput(GLFWwindow* window)
+{
+	movementInput(window);
+	
+	// toggle camera mode
+	if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) {
+		if (holding == false) {
+			cameraMode = (ProjectionType)((cameraMode + 1) % 2);
+		}
+		holding = true;
+	}
+	else {
+		holding = false;
+	}
+}
+
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	if (firstMouse)
 	{
@@ -124,6 +157,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	float yoffset = lastY - ypos;
 	lastX = xpos;
 	lastY = ypos;
+
+	//std::cout << xpos << ", " << ypos << std::endl;
 
 	float sensitivity = 0.1f;
 	xoffset *= sensitivity;
@@ -149,8 +184,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	fov -= (float)yoffset;
 	if (fov < 1.0f)
 		fov = 1.0f;
-	if (fov > 45.0f)
-		fov = 45.0f;
+	if (fov > 120.0f)
+		fov = 120.0f;
 }
 
 int main() {
@@ -217,15 +252,17 @@ int main() {
 		lastFrame = time;
 
 		glm::mat4 model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0));
-		model = glm::rotate(model, time, glm::vec3(1.0, 0.0, 0.0));
-		model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
 
 		glm::mat4 view;
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUP);
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, UP);
 
 		glm::mat4 projection = glm::mat4(1.0);
-		projection = glm::perspective(glm::radians(fov), ASPECT_RATIO, 0.1f, 100.0f);
+		if (cameraMode == ProjectionType::PERSPECTIVE) {
+			projection = glm::perspective(glm::radians(fov),ASPECT_RATIO, nearPlane, farPlane);
+		}
+		else if (cameraMode == ProjectionType::ORTHOGRAPHIC) {
+			projection = glm::ortho(-SCREEN_WIDTH / 450.0f, SCREEN_WIDTH / 450.0f, -SCREEN_HEIGHT / 450.0f, SCREEN_HEIGHT / 450.0f, nearPlane, farPlane);
+		}
 		
 		// Draw
 
