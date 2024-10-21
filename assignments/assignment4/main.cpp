@@ -16,8 +16,8 @@
 #include <jisaacs/shader.h>
 #include <jisaacs/texture.h>
 
-const int SCREEN_WIDTH = 1000;
-const int SCREEN_HEIGHT = 800;
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
 
 enum ProjectionType {
 	ORTHOGRAPHIC = 0,
@@ -91,18 +91,9 @@ const unsigned int cubeIndices[] = {
 	2, 3, 0, 
 };
 
-glm::vec3 cubePositions[] = {
-	glm::vec3(0.0f,  0.0f,  0.0f),
-	glm::vec3(2.0f,  5.0f, -15.0f),
-	glm::vec3(-1.5f, -2.2f, -2.5f),
-	glm::vec3(-3.8f, -2.0f, -12.3f),
-	glm::vec3(2.4f, -0.4f, -3.5f),
-	glm::vec3(-1.7f,  3.0f, -7.5f),
-	glm::vec3(1.3f, -2.0f, -2.5f),
-	glm::vec3(1.5f,  2.0f, -2.5f),
-	glm::vec3(1.5f,  0.2f, -1.5f),
-	glm::vec3(-1.3f,  1.0f, -1.5f)
-};
+const unsigned int CUBENUM = 20;
+glm::vec3 cubePositions[CUBENUM];
+glm::vec3 cubeRotationDirections[CUBENUM];
 
 void movementInput(GLFWwindow* window) {
 	float cameraSpeed = deltaTime; //- All movement must be scaled by deltaTime to be framerate independent
@@ -239,6 +230,14 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	#pragma endregion
 
+	for (int i = 0; i < CUBENUM; i++) {
+		float maxDist = 5.f;
+		cubePositions[i].x = ew::RandomRange(-maxDist, maxDist);
+		cubePositions[i].y = ew::RandomRange(-maxDist, maxDist);
+		cubePositions[i].z = ew::RandomRange(-maxDist, maxDist);
+		cubeRotationDirections[i] = glm::vec3(ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f));
+	}
+
 	jisaacs::Shader shader = jisaacs::Shader("assets/shaders/shader.vert", "assets/shaders/shader.frag");
 	jisaacs::Texture2D brick = jisaacs::Texture2D("assets/textures/brick.png", GL_LINEAR, GL_REPEAT);
 
@@ -266,7 +265,7 @@ int main() {
 			projection = glm::perspective(glm::radians(fov), (float)SCREEN_WIDTH/SCREEN_HEIGHT, nearPlane, farPlane);  // FOV accounts for the screen's aspect ratio
 		}
 		else if (cameraMode == ProjectionType::ORTHOGRAPHIC) {
-			projection = glm::ortho(-SCREEN_WIDTH / 450.0f, SCREEN_WIDTH / 450.0f, -SCREEN_HEIGHT / 450.0f, SCREEN_HEIGHT / 450.0f, nearPlane, farPlane);
+			projection = glm::ortho(-SCREEN_WIDTH / 400.0f, SCREEN_WIDTH / 400.0f, -SCREEN_HEIGHT / 400.0f, SCREEN_HEIGHT / 400.0f, nearPlane, farPlane);
 		}
 		
 		// Draw
@@ -286,12 +285,12 @@ int main() {
 		brick.Bind(GL_TEXTURE0);
 
 		glBindVertexArray(VAO);
-		for (unsigned int i = 0; i < 10; i++)
+		for (unsigned int i = 0; i < CUBENUM; i++)
 		{
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * i;
-			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			float angle = 7.0f * (i+1) * time;
+			model = glm::rotate(model, glm::radians(angle), cubeRotationDirections[i]);
 			shader.setMat4("model", model);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
