@@ -34,8 +34,11 @@ const float nearPlane = 0.1f, farPlane = 1000.0f; //- Near plane of 0.1, Far pla
 
 const unsigned int CUBENUM = 20;
 glm::vec3 cubePositions[CUBENUM];
-glm::vec3 cubeRotationDirections[CUBENUM];
 glm::vec3 cubeScales[CUBENUM];
+glm::vec3 cubeRotations[CUBENUM];
+glm::vec3 cubeRotationDirs[CUBENUM];
+float cubeRotationAngles[CUBENUM];
+float cubeRotationSpeed = 0.7f;
 const float cubeVertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -225,7 +228,11 @@ int main() {
 		float cubeMinScale = 0.25f;
 		float cubeMaxScale = 1.2f;
 		cubeScales[i] = glm::vec3(ew::RandomRange(cubeMinScale, cubeMaxScale));
-		cubeRotationDirections[i] = glm::vec3(ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f));
+
+		float cubeRotationAngle = ew::RandomRange(0.0f, 3.0f);
+		cubeRotations[i] = cubeRotationAngle * glm::vec3(ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f));
+		cubeRotationDirs[i] = glm::vec3(ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f));
+		cubeRotationAngles[i] = 0.0f;
 	}
 
 	jisaacs::Shader shader = jisaacs::Shader("assets/shaders/shader.vert", "assets/shaders/shader.frag");
@@ -270,12 +277,14 @@ int main() {
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
 		for (unsigned int i = 0; i < CUBENUM; i++)
-		{
-			glm::mat4 model = glm::mat4(1.0f);
+		{ 
+			// BONUS +2: Animate your cubes by changing position, rotation, and/or scale every frame. This movement must be scaled with deltaTime.
+			float angle = 7.0f * (i+1) * time;
+			cubeRotationAngles[i] += cubeRotationSpeed * deltaTime;
 
+			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
-			float angle = 7.0f * (i+1) * time; // BONUS +2: Animate your cubes by changing position, rotation, and/or scale every frame. This movement must be scaled with deltaTime.
-			model = glm::rotate(model, glm::radians(angle), cubeRotationDirections[i]);
+			model = glm::rotate(model, cubeRotationAngles[i], cubeRotations[i]);
 			model = glm::scale(model, cubeScales[i]);
 
 			shader.setMat4("model", model);
