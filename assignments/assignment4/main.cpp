@@ -31,6 +31,10 @@ float lastFrame = 0.0f;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUP = glm::vec3(0.0f, 1.0f, 0.0f);
+float pitch, yaw;
+float lastX = 400, lastY = 300;
+const float sensitivity = 0.1f;
+bool firstMouse = true;
 
 const float cubeVertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -107,6 +111,37 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUP)) * cameraSpeed;
 }
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.1f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(direction);
+}
 
 int main() {
 	#pragma region Initialization
@@ -157,6 +192,8 @@ int main() {
 	jisaacs::Shader shader = jisaacs::Shader("assets/shaders/shader.vert", "assets/shaders/shader.frag");
 	jisaacs::Texture2D brick = jisaacs::Texture2D("assets/textures/brick.png", GL_LINEAR, GL_REPEAT);
 
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, mouse_callback);
 	while (!glfwWindowShouldClose(window)) {
 		// Inputs
 		glfwPollEvents();
