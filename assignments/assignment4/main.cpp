@@ -34,6 +34,7 @@ glm::vec3 cameraUP = glm::vec3(0.0f, 1.0f, 0.0f);
 float pitch, yaw;
 float lastX = 400, lastY = 300;
 const float sensitivity = 0.1f;
+float fov = 45.0f;
 bool firstMouse = true;
 
 const float cubeVertices[] = {
@@ -143,6 +144,15 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	cameraFront = glm::normalize(direction);
 }
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	fov -= (float)yoffset;
+	if (fov < 1.0f)
+		fov = 1.0f;
+	if (fov > 45.0f)
+		fov = 45.0f;
+}
+
 int main() {
 	#pragma region Initialization
 	printf("Initializing...");
@@ -194,6 +204,8 @@ int main() {
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+
 	while (!glfwWindowShouldClose(window)) {
 		// Inputs
 		glfwPollEvents();
@@ -212,7 +224,6 @@ int main() {
 		glm::mat4 view;
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUP);
 
-		float fov = 45.0;
 		glm::mat4 projection = glm::mat4(1.0);
 		projection = glm::perspective(glm::radians(fov), ASPECT_RATIO, 0.1f, 100.0f);
 		
