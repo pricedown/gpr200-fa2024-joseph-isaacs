@@ -151,6 +151,9 @@ int main() {
 		
 		// brick square
 		glEnable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
 		shader.use();
 		shader.setMat4("transform", projection * view * model);
 		shader.setMat4("projection", projection);
