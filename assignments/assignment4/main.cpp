@@ -1,5 +1,5 @@
 // Joseph Isaacs
-// 9/27/24
+// 10/21/24
 
 #include <stdio.h>
 #include <iostream>
@@ -217,7 +217,7 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	#pragma endregion
 	
-	// Cubes random positions, rotations, and scales
+	//- Cubes at random positions, rotations, and scales
 	for (int i = 0; i < CUBENUM; i++) {
 		float cubeBounds = 6.0f;
 		float fieldStartsAt = -4.0f;
