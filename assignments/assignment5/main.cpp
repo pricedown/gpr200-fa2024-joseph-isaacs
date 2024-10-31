@@ -104,9 +104,23 @@ float pitch, yaw = -90.0f; //- Camera starts looking looking along world Z axis.
 float lastX = 0.0f, lastY = 0.0f;
 bool firstMouse = true;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+
 //- Mouse scroll to change FOV
 float fov = 60.0f; //- Perspective projection with a default FOV of 60 degrees
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+// Cursor locking
+bool cursorLocked = false;
+void cursorLocking(GLFWwindow* window) {
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //Locks
+		cursorLocked = true;
+	}
+	else {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); //Unlocks
+		cursorLocked = false;
+	}
+}
 
 int main() {
 	#pragma region Initialization
@@ -175,9 +189,14 @@ int main() {
 	jisaacs::Shader shader = jisaacs::Shader("assets/shaders/shader.vert", "assets/shaders/shader.frag");
 	jisaacs::Texture2D brick = jisaacs::Texture2D("assets/textures/brick.png", GL_LINEAR, GL_REPEAT);
 
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+
+	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+	float ambientK = 0.1f, specularK = 0.5f;
+	float shininess = 0.5f;
 
 	while (!glfwWindowShouldClose(window)) {
 		// Inputs
@@ -189,29 +208,29 @@ int main() {
 		deltaTime = time - lastFrame;
 		lastFrame = time;
 
-		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, UP); 
+		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, UP);
 
 		glm::mat4 projection = glm::mat4(1.0);
 		if (cameraMode == ProjectionType::PERSPECTIVE)
-			projection = glm::perspective(glm::radians(fov), (float)SCREEN_WIDTH/SCREEN_HEIGHT, nearPlane, farPlane);  //- FOV accounts for the screen's aspect ratio
-		else 
+			projection = glm::perspective(glm::radians(fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, nearPlane, farPlane);  //- FOV accounts for the screen's aspect ratio
+		else
 			projection = glm::ortho(-SCREEN_WIDTH / 300.0f, SCREEN_WIDTH / 300.0f, -SCREEN_HEIGHT / 300.0f, SCREEN_HEIGHT / 300.0f, nearPlane, farPlane);
-		
+
 		// Draw
 
 		// background
 		glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		
+
 		// lighting
 		shader.setFloat("ambientStrength", 0.1f);
 		shader.setFloat("specularStrength", 0.5f);
 		shader.setFloat("shininess", 0.5f);
 		shader.setBool("blinnPhong", true);
-		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		shader.setVec3("lightPos", 0.0f, 0.0f, 0.0f);
+		shader.setVec3("lightPos", lightPos);
+		shader.setVec3("lightColor", lightColor);
 		shader.setVec3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
-		
+
 		// brick cubes
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -223,9 +242,9 @@ int main() {
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
 		for (unsigned int i = 0; i < CUBENUM; i++)
-		{ 
+		{
 			// BONUS +2: Animate your cubes by changing position, rotation, and/or scale every frame. This movement must be scaled with deltaTime.
-			float angle = 7.0f * (i+1) * time;
+			float angle = 7.0f * (i + 1) * time;
 			cubeRotationAngles[i] += cubeRotationSpeed * deltaTime;
 
 			glm::mat4 model = glm::mat4(1.0f);
@@ -245,6 +264,9 @@ int main() {
 		ImGui::Begin("Settings");
 		ImGui::Text("Add Controls Here!");
 		ImGui::End();
+		ImGui::DragFloat3("Light Position", &lightPos.x, 0.1f);
+		ImGui::ColorEdit3("Light Color", &lightColor.r);
+		ImGui::SliderFloat("Ambient K", &ambientK, 0.0f, 1.0f);
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -293,16 +315,22 @@ void cameraProjectionInput(GLFWwindow* window) {
 void processInput(GLFWwindow* window) {
 	movementInput(window);
 	cameraProjectionInput(window);
+	cursorLocking(window);
 }
 
+bool wasCursorLocked;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	if (firstMouse)
+	if (firstMouse || cursorLocked != wasCursorLocked)
 	{
 		lastX = xpos;
 		lastY = ypos;
 		firstMouse = false;
 	}
 
+	wasCursorLocked = cursorLocked;
+	if (!cursorLocked)
+		return;
+	
 	float xoffset = xpos - lastX;
 	float yoffset = lastY - ypos;
 	lastX = xpos;
