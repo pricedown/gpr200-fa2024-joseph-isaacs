@@ -266,6 +266,10 @@ int main() {
 		glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		
+		// lighting
+		shader.setFloat("ambientStrength", 0.1f);
+		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		
 		// brick cubes
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_DEPTH_BUFFER_BIT);
