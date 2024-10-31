@@ -6,6 +6,10 @@ in vec3 FragPos;
 
 out vec4 FragColor;
 
+uniform float specularStrength;
+uniform float shininess;
+uniform bool blinnPhong;
+
 uniform sampler2D tex;
 uniform float ambientStrength;
 uniform vec3 lightColor;
@@ -15,20 +19,27 @@ uniform vec3 viewPos;
 void main() {
     vec3 objectColor = vec3(texture(tex,TexCoord));
 
-    vec3 ambient = ambientStrength * lightColor;
-
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);  
+    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+
+    vec3 ambient = ambientStrength * lightColor;
 
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
 
-    float specularStrength = 0.5;
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);  
-
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;  
+    float spec = 0.0;
+    if (blinnPhong)
+    {
+        spec = pow(max(dot(norm, halfwayDir), 0.0), 16.0);
+    }
+    else
+    {
+        spec = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
+    }
+    vec3 specular = lightColor * spec;
 
     vec3 result = (ambient + diffuse + specular) * objectColor;
     FragColor = vec4(result, 1.0);

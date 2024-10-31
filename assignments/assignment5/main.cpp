@@ -13,6 +13,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+
 #include <jisaacs/shader.h>
 #include <jisaacs/texture.h>
 
@@ -27,7 +31,7 @@ enum ProjectionType {
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); 
 const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f);
 const float nearPlane = 0.1f, farPlane = 1000.0f; //- Near plane of 0.1, Far plane of 1000
@@ -86,100 +90,23 @@ const float cubeVertices[] = {
 };
 
 const float speed = 2.5f, sprintSpeedMultiplier = 2.0f;
-void movementInput(GLFWwindow* window) {
-	float cameraSpeed = speed * deltaTime; //- All movement must be scaled by deltaTime to be framerate independent
-	
-	//- Left Shift to Sprint(double base movement speed if held)*
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) 
-		cameraSpeed *= sprintSpeedMultiplier;
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += cameraSpeed * cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos -= cameraSpeed * cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
-
-	//- Q, E to move down / up along local Y axis, respectively*
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(glm::cross(cameraFront, UP), cameraFront)) * cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(glm::cross(cameraFront, UP), cameraFront)) * cameraSpeed;
-}
-
+void movementInput(GLFWwindow* window);
 //- Bonus +2: Add an option to toggle between Perspective and Orthographic projection.
 // press [TAB] 
 ProjectionType cameraMode = ProjectionType::PERSPECTIVE;
 bool holdingCameraModeToggle = false;
-void cameraProjectionInput(GLFWwindow* window) {
-	if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) {
-		if (holdingCameraModeToggle == false) {
-			cameraMode = (ProjectionType)((cameraMode + 1) % 2);
-		}
-		holdingCameraModeToggle = true;
-	}
-	else {
-		holdingCameraModeToggle = false;
-	}
-}
-
-void processInput(GLFWwindow* window)
-{
-	movementInput(window);
-	cameraProjectionInput(window);
-}
+void cameraProjectionInput(GLFWwindow* window);
+void processInput(GLFWwindow* window);
 
 //- Aiming with mouse
 const float sensitivity = 0.1f;
 float pitch, yaw = -90.0f; //- Camera starts looking looking along world Z axis.
 float lastX = 0.0f, lastY = 0.0f;
 bool firstMouse = true;
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	if (firstMouse)
-	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
-	}
-
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos;
-	lastX = xpos;
-	lastY = ypos;
-
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
-
-	//- Pitch is clamped to - 89 and 89 degrees
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 direction;
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(direction);
-}
-
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 //- Mouse scroll to change FOV
 float fov = 60.0f; //- Perspective projection with a default FOV of 60 degrees
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	fov -= (float)yoffset;
-
-	//- Clamp FOV between 1 and 120 degrees
-	if (fov < 1.0f)
-		fov = 1.0f;
-	if (fov > 120.0f)
-		fov = 120.0f;
-}
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 int main() {
 	#pragma region Initialization
@@ -199,6 +126,11 @@ int main() {
 		printf("GLAD Failed to load GL headers");
 		return 1;
 	}
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init();
 	#pragma endregion
 	#pragma region Geometry data
 	// Background
@@ -220,7 +152,7 @@ int main() {
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	#pragma endregion
-	
+	# pragma region World
 	//- Cubes at random positions, rotations, and scales
 	for (int i = 0; i < CUBENUM; i++) {
 		float cubeBounds = 6.0f;
@@ -238,6 +170,7 @@ int main() {
 		cubeRotationDirs[i] = glm::vec3(ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f), ew::RandomRange(-1.0f, 1.0f));
 		cubeRotationAngles[i] = 0.0f;
 	}
+	# pragma endregion
 
 	jisaacs::Shader shader = jisaacs::Shader("assets/shaders/shader.vert", "assets/shaders/shader.frag");
 	jisaacs::Texture2D brick = jisaacs::Texture2D("assets/textures/brick.png", GL_LINEAR, GL_REPEAT);
@@ -272,6 +205,9 @@ int main() {
 		
 		// lighting
 		shader.setFloat("ambientStrength", 0.1f);
+		shader.setFloat("specularStrength", 0.5f);
+		shader.setFloat("shininess", 0.5f);
+		shader.setBool("blinnPhong", true);
 		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		shader.setVec3("lightPos", 0.0f, 0.0f, 0.0f);
 		shader.setVec3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
@@ -301,7 +237,103 @@ int main() {
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
+		// ImGui
+		ImGui_ImplGlfw_NewFrame();
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::Begin("Settings");
+		ImGui::Text("Add Controls Here!");
+		ImGui::End();
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+
 		glfwSwapBuffers(window);
 	}
 	printf("Shutting down...");
+}
+
+void movementInput(GLFWwindow* window) {
+	float cameraSpeed = speed * deltaTime; //- All movement must be scaled by deltaTime to be framerate independent
+
+	//- Left Shift to Sprint(double base movement speed if held)*
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		cameraSpeed *= sprintSpeedMultiplier;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, UP)) * cameraSpeed;
+
+	//- Q, E to move down / up along local Y axis, respectively*
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(glm::cross(cameraFront, UP), cameraFront)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(glm::cross(cameraFront, UP), cameraFront)) * cameraSpeed;
+}
+
+void cameraProjectionInput(GLFWwindow* window) {
+	if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) {
+		if (holdingCameraModeToggle == false) {
+			cameraMode = (ProjectionType)((cameraMode + 1) % 2);
+		}
+		holdingCameraModeToggle = true;
+	}
+	else {
+		holdingCameraModeToggle = false;
+	}
+}
+
+void processInput(GLFWwindow* window) {
+	movementInput(window);
+	cameraProjectionInput(window);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;
+	lastX = xpos;
+	lastY = ypos;
+
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	//- Pitch is clamped to - 89 and 89 degrees
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	fov -= (float)yoffset;
+
+	//- Clamp FOV between 1 and 120 degrees
+	if (fov < 1.0f)
+		fov = 1.0f;
+	if (fov > 120.0f)
+		fov = 120.0f;
 }
