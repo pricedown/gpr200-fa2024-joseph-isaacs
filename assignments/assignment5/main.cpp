@@ -112,6 +112,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 // Cursor locking
 bool cursorLocked = false;
 void cursorLocking(GLFWwindow* window) {
+	/*
+	if (ImGui::GetIO().WantCaptureMouse) {
+		return; // Skip processing if ImGui is capturing the mouse
+	}*/
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //Locks
 		cursorLocked = true;
@@ -140,6 +144,7 @@ int main() {
 		printf("GLAD Failed to load GL headers");
 		return 1;
 	}
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); //Unlocks
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -186,7 +191,8 @@ int main() {
 	}
 	# pragma endregion
 
-	jisaacs::Shader shader = jisaacs::Shader("assets/shaders/shader.vert", "assets/shaders/shader.frag");
+	jisaacs::Shader brickShader = jisaacs::Shader("assets/shaders/cube.vert", "assets/shaders/cube.frag");
+	jisaacs::Shader lightShader = jisaacs::Shader("assets/shaders/light.vert", "assets/shaders/light.frag");
 	jisaacs::Texture2D brick = jisaacs::Texture2D("assets/textures/brick.png", GL_LINEAR, GL_REPEAT);
 
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -195,8 +201,9 @@ int main() {
 
 	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-	float ambientK = 0.1f, specularK = 0.5f;
+	float ambientK = 0.1f, specularK = 0.5f, diffuseK = 0.5f;
 	float shininess = 0.5f;
+	bool blinnPhong = true;
 
 	while (!glfwWindowShouldClose(window)) {
 		// Inputs
@@ -217,42 +224,56 @@ int main() {
 			projection = glm::ortho(-SCREEN_WIDTH / 300.0f, SCREEN_WIDTH / 300.0f, -SCREEN_HEIGHT / 300.0f, SCREEN_HEIGHT / 300.0f, nearPlane, farPlane);
 
 		// Draw
-
 		// background
 		glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// lighting
-		shader.setFloat("ambientStrength", 0.1f);
-		shader.setFloat("specularStrength", 0.5f);
-		shader.setFloat("shininess", 0.5f);
-		shader.setBool("blinnPhong", true);
-		shader.setVec3("lightPos", lightPos);
-		shader.setVec3("lightColor", lightColor);
-		shader.setVec3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
-
-		// brick cubes
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		shader.use();
+		// lighting
+		brickShader.setVec3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
+		brickShader.setBool("blinnPhong", blinnPhong);
+		brickShader.setVec3("lightPos", lightPos);
+		brickShader.setVec3("lightColor", lightColor);
+		brickShader.setFloat("ambientStrength", ambientK);
+		brickShader.setFloat("diffuseStrength", diffuseK);
+		brickShader.setFloat("specularStrength", specularK);
+		brickShader.setFloat("shininess", shininess);
+
+		// draw light
+		lightShader.use();
+		glBindVertexArray(VAO);
+		glm::mat4 lightModel = glm::mat4(1.0f);
+		lightModel = glm::translate(lightModel, lightPos);
+		lightModel = glm::rotate(lightModel, cubeRotationAngles[0], cubeRotations[0]);
+		lightModel = glm::scale(lightModel, glm::vec3(0.2f));
+		lightShader.setMat4("projection", projection);
+		lightShader.setMat4("view", view);
+		lightShader.setMat4("model", lightModel);
+		lightShader.setVec3("lightPos", lightPos);
+		lightShader.setVec3("lightColor", lightColor);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		brickShader.use();
 		brick.Bind(GL_TEXTURE0);
 		glBindVertexArray(VAO);
 
-		shader.setMat4("projection", projection);
-		shader.setMat4("view", view);
+		brickShader.setMat4("projection", projection);
+		brickShader.setMat4("view", view);
 		for (unsigned int i = 0; i < CUBENUM; i++)
 		{
-			// BONUS +2: Animate your cubes by changing position, rotation, and/or scale every frame. This movement must be scaled with deltaTime.
+			/*
 			float angle = 7.0f * (i + 1) * time;
 			cubeRotationAngles[i] += cubeRotationSpeed * deltaTime;
+			*/
 
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
 			model = glm::rotate(model, cubeRotationAngles[i], cubeRotations[i]);
 			model = glm::scale(model, cubeScales[i]);
 
-			shader.setMat4("model", model);
+			brickShader.setMat4("model", model);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
@@ -261,16 +282,18 @@ int main() {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::Begin("Settings");
-		ImGui::Text("Add Controls Here!");
-		ImGui::End();
+		ImGui::Begin("Lighting");
+		ImGui::Checkbox("Blinn-Phong", &blinnPhong);
 		ImGui::DragFloat3("Light Position", &lightPos.x, 0.1f);
 		ImGui::ColorEdit3("Light Color", &lightColor.r);
 		ImGui::SliderFloat("Ambient K", &ambientK, 0.0f, 1.0f);
+		ImGui::SliderFloat("Diffuse K", &diffuseK, 0.0f, 1.0f);
+		ImGui::SliderFloat("Specular K", &specularK, 0.0f, 1.0f);
+		ImGui::SliderFloat("Shininess", &shininess, 2.0f, 1024.0f);
+		ImGui::End();
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 
 		glfwSwapBuffers(window);
 	}
@@ -320,16 +343,17 @@ void processInput(GLFWwindow* window) {
 
 bool wasCursorLocked;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	if (firstMouse || cursorLocked != wasCursorLocked)
+	if (cursorLocked != wasCursorLocked)
 	{
 		lastX = xpos;
 		lastY = ypos;
-		firstMouse = false;
 	}
 
 	wasCursorLocked = cursorLocked;
-	if (!cursorLocked)
+	if (!cursorLocked) {
+		ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
 		return;
+	}
 	
 	float xoffset = xpos - lastX;
 	float yoffset = lastY - ypos;
@@ -353,6 +377,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	direction.y = sin(glm::radians(pitch));
 	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	cameraFront = glm::normalize(direction);
+	ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
