@@ -31,7 +31,7 @@ enum ProjectionType {
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 cameraPos = glm::vec3(-2.98126, 0.321037, 1.68709);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); 
 const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f);
 const float nearPlane = 0.1f, farPlane = 1000.0f; //- Near plane of 0.1, Far plane of 1000
@@ -202,7 +202,7 @@ int main() {
 	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 	float ambientK = 0.1f, specularK = 0.5f, diffuseK = 0.5f;
-	float shininess = 0.5f;
+	float shininess = 18.0f;
 	bool blinnPhong = true;
 
 	while (!glfwWindowShouldClose(window)) {
@@ -231,15 +231,6 @@ int main() {
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		// lighting
-		brickShader.setVec3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
-		brickShader.setBool("blinnPhong", blinnPhong);
-		brickShader.setVec3("lightPos", lightPos);
-		brickShader.setVec3("lightColor", lightColor);
-		brickShader.setFloat("ambientStrength", ambientK);
-		brickShader.setFloat("diffuseStrength", diffuseK);
-		brickShader.setFloat("specularStrength", specularK);
-		brickShader.setFloat("shininess", shininess);
 
 		// draw light
 		lightShader.use();
@@ -255,7 +246,16 @@ int main() {
 		lightShader.setVec3("lightColor", lightColor);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
+		// draw bricks
 		brickShader.use();
+		brickShader.setVec3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
+		brickShader.setBool("blinnPhong", blinnPhong);
+		brickShader.setVec3("lightPos", lightPos);
+		brickShader.setVec3("lightColor", lightColor);
+		brickShader.setFloat("ambientStrength", ambientK);
+		brickShader.setFloat("diffuseStrength", diffuseK);
+		brickShader.setFloat("specularStrength", specularK);
+		brickShader.setFloat("shininess", shininess);
 		brick.Bind(GL_TEXTURE0);
 		glBindVertexArray(VAO);
 
@@ -335,10 +335,21 @@ void cameraProjectionInput(GLFWwindow* window) {
 	}
 }
 
+void debugInputs(GLFWwindow* window) {
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+		std::cout << "Camera Pos: ";
+		std::cout << "(" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")" << std::endl;
+		std::cout << "Camera Front: ";
+		std::cout << "(" << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << ")" << std::endl;
+	}
+}
+
+
 void processInput(GLFWwindow* window) {
 	movementInput(window);
 	cameraProjectionInput(window);
 	cursorLocking(window);
+	debugInputs(window);
 }
 
 bool wasCursorLocked;
