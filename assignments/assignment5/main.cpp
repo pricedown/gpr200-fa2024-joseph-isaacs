@@ -231,7 +231,6 @@ int main() {
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-
 		// draw light
 		lightShader.use();
 		glBindVertexArray(VAO);
