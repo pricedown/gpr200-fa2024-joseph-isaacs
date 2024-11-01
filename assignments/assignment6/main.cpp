@@ -199,6 +199,7 @@ int main() {
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
+	jisaacs::Mesh cubeMesh = jisaacs::Mesh(jisaacs::createCube(1.0f));
 	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 	float ambientK = 0.1f, specularK = 0.5f, diffuseK = 0.5f;
