@@ -19,6 +19,7 @@
 
 #include <jisaacs/shader.h>
 #include <jisaacs/texture.h>
+#include <jisaacs/camera.h>
 
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
@@ -144,15 +145,15 @@ int main() {
 		printf("GLAD Failed to load GL headers");
 		return 1;
 	}
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); //Unlocks
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init();
+		
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); //Unlocks
 	#pragma endregion
 	#pragma region Geometry data
-	// Background
 	unsigned int VAO, VBO, EBO;
 
 	glGenVertexArrays(1, &VAO);
@@ -226,10 +227,7 @@ int main() {
 		// Draw
 		// background
 		glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glEnable(GL_DEPTH_TEST);
-		glClear(GL_DEPTH_BUFFER_BIT);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 		// draw light
 		lightShader.use();
@@ -244,6 +242,8 @@ int main() {
 		lightShader.setVec3("lightPos", lightPos);
 		lightShader.setVec3("lightColor", lightColor);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		glEnable(GL_DEPTH_TEST);
 
 		// draw bricks
 		brickShader.use();
@@ -262,11 +262,6 @@ int main() {
 		brickShader.setMat4("view", view);
 		for (unsigned int i = 0; i < CUBENUM; i++)
 		{
-			/*
-			float angle = 7.0f * (i + 1) * time;
-			cubeRotationAngles[i] += cubeRotationSpeed * deltaTime;
-			*/
-
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
 			model = glm::rotate(model, cubeRotationAngles[i], cubeRotations[i]);
@@ -275,8 +270,8 @@ int main() {
 			brickShader.setMat4("model", model);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-
-		// ImGui
+		
+		#pragma region ImGui
 		ImGui_ImplGlfw_NewFrame();
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui::NewFrame();
@@ -293,6 +288,7 @@ int main() {
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		#pragma endregion
 
 		glfwSwapBuffers(window);
 	}
