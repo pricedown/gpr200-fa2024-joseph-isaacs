@@ -130,6 +130,15 @@ void Camera::timeChange(float currentFrame) {
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 }
-glm::vec3 Camera::getPosition() {
+glm::vec3 Camera::getPosition() const {
 	return cameraPos;
+}
+void Camera::setPosition(const glm::vec3& pos) {
+	cameraPos = pos;
+}
+glm::vec3 Camera::getFront() const {
+	return cameraFront;
+}
+void Camera::setFront(const glm::vec3& front) {
+	cameraFront = front;
 }

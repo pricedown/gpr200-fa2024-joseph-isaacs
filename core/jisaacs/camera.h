@@ -28,12 +28,19 @@ namespace pl {
 		void processInput(GLFWwindow* window);
 		void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 		void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
 		glm::mat4 projection(glm::mat4& projection) const;
 		glm::mat4 projection() const;
 		glm::mat4 viewLookAt(glm::mat4& view) const;
 		glm::mat4 viewLookAt() const;
+
 		void timeChange(float currentFrame);
-		glm::vec3 getPosition();
+
+		glm::vec3 getPosition() const;
+		void setPosition(const glm::vec3& pos);
+		glm::vec3 getFront() const;
+		void setFront(const glm::vec3& front);
+
 	private:
 		//Camera
 		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
