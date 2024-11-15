@@ -24,16 +24,22 @@
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 
+/*
 enum ProjectionType {
 	ORTHOGRAPHIC = 0,
 	PERSPECTIVE = 1
 };
+*/
  
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+/*
 glm::vec3 cameraPos = glm::vec3(-2.98126, 0.321037, 1.68709);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); 
+*/
+
+pl::Camera camera(SCREEN_WIDTH, SCREEN_HEIGHT);
 const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f);
 const float nearPlane = 0.1f, farPlane = 1000.0f; //- Near plane of 0.1, Far plane of 1000
 
@@ -90,6 +96,7 @@ const float cubeVertices[] = {
 		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,   0.0f, 1.0f,
 };
 
+/*
 const float speed = 2.5f, sprintSpeedMultiplier = 2.0f;
 void movementInput(GLFWwindow* window);
 //- Bonus +2: Add an option to toggle between Perspective and Orthographic projection.
@@ -113,10 +120,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 // Cursor locking
 bool cursorLocked = false;
 void cursorLocking(GLFWwindow* window) {
-	/*
-	if (ImGui::GetIO().WantCaptureMouse) {
-		return; // Skip processing if ImGui is capturing the mouse
-	}*/
+	// if (ImGui::GetIO().WantCaptureMouse) { return; // Skip processing if ImGui is capturing the mouse
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //Locks
 		cursorLocked = true;
@@ -126,7 +130,7 @@ void cursorLocking(GLFWwindow* window) {
 		cursorLocked = false;
 	}
 }
-
+*/
 int main() {
 	#pragma region Initialization
 	printf("Initializing...");
@@ -197,8 +201,8 @@ int main() {
 	jisaacs::Texture2D brick = jisaacs::Texture2D("assets/textures/brick.png", GL_LINEAR, GL_REPEAT);
 
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPosCallback(window, mouse_callback);
-	glfwSetScrollCallback(window, scroll_callback);
+	//glfwSetCursorPosCallback(window, mouse_callback);
+	//glfwSetScrollCallback(window, scroll_callback);
 
 	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -206,30 +210,30 @@ int main() {
 	float shininess = 18.0f;
 	bool blinnPhong = true;
 
+	camera.setPosition(glm::vec3(-2.98126, 0.321037, 1.68709));
+	camera.setFront(glm::vec3(0.855282, -0.0662739, -0.513907));
+
 	while (!glfwWindowShouldClose(window)) {
 		// Inputs
 		glfwPollEvents();
-		processInput(window);
 
 		// Update
 		float time = glfwGetTime();
 		deltaTime = time - lastFrame;
 		lastFrame = time;
 
-		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, UP);
+		camera.use(window);
+		camera.timeChange(time);
 
-		glm::mat4 projection = glm::mat4(1.0);
-		if (cameraMode == ProjectionType::PERSPECTIVE)
-			projection = glm::perspective(glm::radians(fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, nearPlane, farPlane);  //- FOV accounts for the screen's aspect ratio
-		else
-			projection = glm::ortho(-SCREEN_WIDTH / 300.0f, SCREEN_WIDTH / 300.0f, -SCREEN_HEIGHT / 300.0f, SCREEN_HEIGHT / 300.0f, nearPlane, farPlane);
+		glm::mat4 projection = camera.projection();
+		glm::mat4 view = camera.viewLookAt();
 
 		// Draw
 		// background
 		glClearColor(0.2f, 0.2f, 0.5f, 1.0f);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-		// draw light
+		// light box
 		lightShader.use();
 		glBindVertexArray(VAO);
 		glm::mat4 lightModel = glm::mat4(1.0f);
@@ -245,9 +249,9 @@ int main() {
 
 		glEnable(GL_DEPTH_TEST);
 
-		// draw bricks
+		// boxes
 		brickShader.use();
-		brickShader.setVec3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
+		brickShader.setVec3("viewPos", camera.getPosition());
 		brickShader.setBool("blinnPhong", blinnPhong);
 		brickShader.setVec3("lightPos", lightPos);
 		brickShader.setVec3("lightColor", lightColor);
@@ -295,6 +299,7 @@ int main() {
 	printf("Shutting down...");
 }
 
+/*
 void movementInput(GLFWwindow* window) {
 	float cameraSpeed = speed * deltaTime; //- All movement must be scaled by deltaTime to be framerate independent
 
@@ -333,7 +338,7 @@ void cameraProjectionInput(GLFWwindow* window) {
 void debugInputs(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
 		std::cout << "Camera Pos: ";
-		std::cout << "(" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")" << std::endl;
+		std::cout << "(" << camera.getPosition().x << ", " << cameraPos.y << ", " << cameraPos.z << ")" << std::endl;
 		std::cout << "Camera Front: ";
 		std::cout << "(" << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << ")" << std::endl;
 	}
@@ -396,3 +401,4 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	if (fov > 120.0f)
 		fov = 120.0f;
 }
+*/
